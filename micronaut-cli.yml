@@ -1,0 +1,6 @@
+applicationType: cli
+defaultPackage: mytest1
+testFramework: junit
+sourceLanguage: java
+buildTool: gradle
+features: [app-name, gradle, http-client-test, java, junit, micronaut-build, picocli, picocli-java-application, picocli-junit, properties, readme, serialization-jackson, shade, slf4j-simple-logger]
