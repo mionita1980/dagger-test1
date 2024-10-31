@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install deps
-        run: pip install dagger-io==0.10.3
+        run: pip install dagger-io==0.13.3
       - name: Install Dagger CLI
         run: cd /usr/local && { curl -L https://dl.dagger.io/dagger/install.sh | sh; cd -; }
       - name: Setup env vars
