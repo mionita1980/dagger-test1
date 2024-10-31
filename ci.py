@@ -1,3 +1,5 @@
+#dagger run python3 ci.py
+
 import sys
 import random
 import anyio
@@ -8,7 +10,7 @@ async def compile():
     src = (
       client
       .host()
-      .directory(".", exclude=["build/", ".gradle/"])
+      .directory(".")
     )
     cache = (
       client
@@ -30,32 +32,26 @@ async def compile():
     await build_dir.export("build/")
 
 async def codeql_analysis():
-  async with dagger.Connection(dagger.Config(log_output=sys.stderr)) as client:
-    src = (
-      client
-      .host()
-      .directory(".", exclude=["build/", ".gradle/"])
-    )
-    results = (
-      client
-      .host()
-      .directory(".")
-      .with_new_directory("results")
-      .directory("./results")
-    )
-    analysis_container = (
-      client
-      .container()
-      .from_("btnguyen2k/codeql-container")
-      .with_directory("/opt/src", src, exclude=[], include=[], owner="codeql:codeql")
-      .with_directory("/opt/results", results, exclude=[], include=[], owner="codeql:codeql")
-    )
-    results_dir = (
-      analysis_container
-      .with_exec(["security","--override","--language=java","--output=sarif-latest"])
-      .directory("/opt/results/")
-    )
-    await results_dir.export("results/")
+    async with dagger.Connection(dagger.Config(log_output=sys.stderr)) as client:
+        src = (
+            client
+            .host()
+            .directory(".")
+        )
+        analysis_container = (
+            client
+            .container()
+            .from_("mionita22/codeql-java")
+            .with_directory("/project", src, exclude=[], include=[])
+            .with_exec(["/run.sh", "/project", "/project/build/codeql-results.sarif"])
+        )
+        codeql_output = await analysis_container.stdout()
+        results_dir = (
+            analysis_container
+            .directory("/project/build")
+        )
+        await results_dir.export("build")
+    print(f"CodeQL analysis results are in /build/codeql-results.sarif")
 
 async def build_image():
   async with dagger.Connection(dagger.Config(log_output=sys.stderr)) as client:
@@ -83,7 +79,7 @@ async def build_image():
       .from_("aquasec/trivy:latest")
       .with_mounted_cache("/root/.cache/trivy",trivy_cache)
       .with_mounted_file(f"/myImage", image_container.as_tarball())
-      .with_exec(["image", "--scanners", "vuln", "--input", "/myImage"])
+      .with_exec(["trivy","image", "--scanners", "vuln", "--input", "/myImage"])
     )
     trivy_output = await trivy_container.stdout()
     image_ref = await image_container.publish(f"ttl.sh/mytest1-github-12345")
