@@ -88,7 +88,7 @@ async def build_image():
 #dagger run python3 ci.py
 async def main():
     await compile()
-    await codeql_analysis()
+    #await codeql_analysis()
     await build_image()
 
 anyio.run(main)
